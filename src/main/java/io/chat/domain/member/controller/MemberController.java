@@ -5,7 +5,6 @@ import io.chat.domain.member.dto.MemberSaveRequestDto;
 import io.chat.domain.member.entity.Member;
 import io.chat.domain.member.service.MemberService;
 import io.chat.global.common.jwt.JwtTokenProvider;
-import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
