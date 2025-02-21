@@ -1,20 +1,18 @@
 package io.chat.domain.member.controller;
 
 import io.chat.domain.member.dto.LoginRequestDto;
-import io.chat.domain.member.dto.MemberSaveRequestDto;
+import io.chat.domain.member.dto.LoginResponseDto;
+import io.chat.domain.member.dto.MemberListResponseDto;
+import io.chat.domain.member.dto.SignupRequestDto;
 import io.chat.domain.member.entity.Member;
 import io.chat.domain.member.service.MemberService;
 import io.chat.global.common.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 @RestController
 @RequestMapping("/member")
@@ -25,9 +23,9 @@ public class MemberController {
     private final JwtTokenProvider jwtTokenProvider;
 
     @PostMapping("/signup")
-    public ResponseEntity<?> memberCreate(@RequestBody MemberSaveRequestDto memberSaveRequestDto) {
+    public ResponseEntity<Long> memberCreate(@RequestBody SignupRequestDto signupRequestDto) {
 
-        Member member  = memberService.create(memberSaveRequestDto);
+        Member member  = memberService.create(signupRequestDto);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -35,18 +33,31 @@ public class MemberController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> doLogin(@RequestBody LoginRequestDto loginRequestDto) {
+    public ResponseEntity<LoginResponseDto> doLogin(@RequestBody LoginRequestDto loginRequestDto) {
 
         Member member = memberService.login(loginRequestDto);
 
         String jwtToken = jwtTokenProvider.createToken(member.getEmail(), member.getRole().toString());
-        Map<String, Object> loginInfo = new HashMap<>();
 
-        loginInfo.put("id", member.getId());
-        loginInfo.put("token", jwtToken);
+        LoginResponseDto loginResponseDto = new LoginResponseDto(
+                member.getId(),
+                member.getName(),
+                member.getEmail(),
+                jwtToken
+        );
 
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(loginInfo);
+                .body(loginResponseDto);
+    }
+
+    @GetMapping("/list")
+    public ResponseEntity<List<MemberListResponseDto>> memberList() {
+
+        List<MemberListResponseDto> dtos = memberService.findAll();
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(dtos);
     }
 }
