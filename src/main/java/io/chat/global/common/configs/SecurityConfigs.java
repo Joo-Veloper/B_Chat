@@ -37,7 +37,7 @@ public class SecurityConfigs {
                 .csrf(AbstractHttpConfigurer::disable) // csrf 비활성화
                 .httpBasic(AbstractHttpConfigurer::disable) // Http Basic 비활성화(토큰 사용)
                 .authorizeHttpRequests(a -> a
-                        .requestMatchers("/member/signup", "/member/login")
+                        .requestMatchers("/member/signup", "/member/login", "/connect/**")
                         .permitAll()
                         .anyRequest()
                         .authenticated())
