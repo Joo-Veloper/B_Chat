@@ -47,7 +47,7 @@ public class JwtAuthFilter extends GenericFilter {
                 Claims claims = Jwts.parserBuilder()
                         .setSigningKey(secretKey)
                         .build()
-                        .parseClaimsJwt(jwtToken)
+                        .parseClaimsJws(jwtToken)
                         .getBody();
 
                 List<GrantedAuthority> authorities = new ArrayList<>();
@@ -57,7 +57,6 @@ public class JwtAuthFilter extends GenericFilter {
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
             }
-
             chain.doFilter(request, response);
         } catch (Exception e) {
             e.printStackTrace();

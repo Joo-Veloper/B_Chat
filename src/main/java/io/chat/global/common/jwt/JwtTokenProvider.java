@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.spec.SecretKeySpec;
 import java.security.Key;
+import java.util.Base64;
 import java.util.Date;
 
 @Component
@@ -23,12 +24,11 @@ public class JwtTokenProvider {
         this.secretKey = secretKey;
         this.expiration = expiration;
         this.SECRET_KEY = new SecretKeySpec(
-                java.util.Base64.getDecoder().decode(secretKey),
-                SignatureAlgorithm.HS512.getJcaName()
-        );
+                Base64.getDecoder().decode(secretKey),
+                SignatureAlgorithm.HS512.getJcaName());
     }
 
-    public String createToken(String email, String role) {
+    public String createToken(String email, String role){
 
         Claims claims = Jwts.claims().setSubject(email);
         claims.put("role", role);
@@ -36,7 +36,8 @@ public class JwtTokenProvider {
         String token = Jwts.builder()
                 .setClaims(claims)
                 .setIssuedAt(now)
-                .setExpiration(new Date(now.getTime() + expiration*60*1000L))
+                .setExpiration(new Date(now.getTime() + expiration * 60 * 1000L))
+                .signWith(SECRET_KEY)
                 .compact();
 
         return token;
