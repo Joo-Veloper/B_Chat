@@ -1,4 +1,4 @@
-package io.chat.domain.chat.controller;
+package io.chat.domain.chat.stomp.controller;
 
 import io.chat.domain.chat.dto.ChatMessageRequestDto;
 import lombok.RequiredArgsConstructor;

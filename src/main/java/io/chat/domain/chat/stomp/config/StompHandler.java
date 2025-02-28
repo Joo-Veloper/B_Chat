@@ -1,4 +1,4 @@
-package io.chat.domain.chat.config;
+package io.chat.domain.chat.stomp.config;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

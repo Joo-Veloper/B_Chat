@@ -1,4 +1,4 @@
-package io.chat.domain.chat.config;
+package io.chat.domain.chat.stomp.config;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;

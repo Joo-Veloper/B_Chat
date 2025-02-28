@@ -1,4 +1,4 @@
-package io.chat.domain.chat.config;
+package io.chat.domain.chat.stomp.config;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
