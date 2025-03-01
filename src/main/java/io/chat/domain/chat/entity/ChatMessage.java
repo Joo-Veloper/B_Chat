@@ -1,7 +1,5 @@
 package io.chat.domain.chat.entity;
 
-import io.chat.domain.chat.entity.ChatRoom;
-import io.chat.domain.chat.entity.ReadStatus;
 import io.chat.domain.member.entity.Member;
 import io.chat.global.common.utils.TimeStamp;
 import jakarta.persistence.*;

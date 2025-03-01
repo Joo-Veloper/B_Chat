@@ -19,9 +19,6 @@ public class ReadStatus extends TimeStamp {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 1000)
-    private String content;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "chat_room_id", nullable = false)
     private ChatRoom chatRoom;
@@ -35,6 +32,6 @@ public class ReadStatus extends TimeStamp {
     private ChatMessage chatMessage;
 
     @Column(nullable = false)
-    private boolean isRead;
+    private Boolean isRead;
 
 }
