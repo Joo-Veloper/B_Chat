@@ -10,6 +10,5 @@ import lombok.NoArgsConstructor;
 public class ChatRoomResponseDto {
 
     Long id;
-
     String name;
 }
