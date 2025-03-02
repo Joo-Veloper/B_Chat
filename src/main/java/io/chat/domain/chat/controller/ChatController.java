@@ -1,5 +1,6 @@
 package io.chat.domain.chat.controller;
 
+import io.chat.domain.chat.dto.ChatRoomJoinResponseDto;
 import io.chat.domain.chat.dto.ChatRoomListResponseDto;
 import io.chat.domain.chat.dto.ChatRoomResponseDto;
 import io.chat.domain.chat.service.ChatService;
@@ -38,5 +39,18 @@ public class ChatController {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(chatRooms);
+    }
+
+    // 채팅 참여
+    @PostMapping("/room/group/{roomId}/join")
+    public ResponseEntity<ChatRoomJoinResponseDto> joinGroupChatRoom(@PathVariable Long roomId) {
+
+        chatService.addParticipantToGroupChat(roomId);
+
+        ChatRoomJoinResponseDto responseDto = new ChatRoomJoinResponseDto(roomId, "Successfully joined the chat room");
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(responseDto);
     }
 }

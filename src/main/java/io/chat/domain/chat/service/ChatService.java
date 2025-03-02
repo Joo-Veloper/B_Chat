@@ -15,4 +15,5 @@ public interface ChatService {
 
     List<ChatRoomListResponseDto> getGroupChatRooms();
 
+    void addParticipantToGroupChat(Long roomId);
 }
