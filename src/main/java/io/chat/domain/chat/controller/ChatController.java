@@ -1,14 +1,14 @@
 package io.chat.domain.chat.controller;
 
+import io.chat.domain.chat.dto.ChatRoomListResponseDto;
 import io.chat.domain.chat.dto.ChatRoomResponseDto;
 import io.chat.domain.chat.service.ChatService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/chat")
@@ -19,7 +19,7 @@ public class ChatController {
 
     // Group Chat
     @PostMapping("/room/group/create")
-    public ResponseEntity<ChatRoomResponseDto> createGroupRoom(@RequestParam String roomName){
+    public ResponseEntity<ChatRoomResponseDto> createGroupRoom(@RequestParam String roomName) {
 
         ChatRoomResponseDto chatRoomResponseDto = chatService.createGroupRoom(roomName);
 
@@ -27,5 +27,16 @@ public class ChatController {
                 .status(HttpStatus.OK)
                 .body(chatRoomResponseDto);
 
+    }
+
+    // Group chat get
+    @GetMapping("/room/group/list")
+    public ResponseEntity<List<ChatRoomListResponseDto>> getGroupChatRoom() {
+
+        List<ChatRoomListResponseDto> chatRooms = chatService.getGroupChatRooms();
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(chatRooms);
     }
 }
