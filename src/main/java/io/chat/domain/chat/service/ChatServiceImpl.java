@@ -15,16 +15,13 @@ import io.chat.domain.member.entity.Member;
 import io.chat.domain.member.repository.MemberRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
-import java.util.Optional;
 
 @Service
-@Transactional
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class ChatServiceImpl implements ChatService {
 
     private final ChatRoomRepository chatRoomRepository;
@@ -33,44 +30,50 @@ public class ChatServiceImpl implements ChatService {
     private final MemberRepository memberRepository;
     private final ReadStatusRepository readStatusRepository;
 
+    @Transactional
     @Override
     public ChatRoomResponseDto createGroupRoom(String roomName) {
 
-        Member member = memberRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
-                .orElseThrow(() -> new EntityNotFoundException("member cannot be found"));
-
-        ChatRoom chatRoom = ChatRoom.builder()
-                .name(roomName)
-                .isGroupChat("Y")
-                .build();
-
-        chatRoomRepository.save(chatRoom);
-
-        ChatParticipant chatParticipant = ChatParticipant.builder()
-                .chatRoom(chatRoom)
-                .member(member)
-                .build();
-
-        chatParticipantRepository.save(chatParticipant);
+        Member member = getAuthenticatedMember();
+        ChatRoom chatRoom = chatRoomRepository.save(
+                ChatRoom.builder().name(roomName).isGroupChat("Y").build()
+        );
+        addParticipantToRoom(chatRoom, member);
 
         return new ChatRoomResponseDto(chatRoom.getId(), chatRoom.getName());
     }
 
+    @Transactional
     @Override
     public void saveMessage(Long roomId, ChatMessageRequestDto chatMessageRequestDto) {
+
         ChatRoom chatRoom = getChatRoomById(roomId);
         Member sender = getMemberByEmail(chatMessageRequestDto.getSenderEmail());
-
         ChatMessage chatMessage = chatMessageRepository.save(
-                ChatMessage.builder()
-                        .chatRoom(chatRoom)
-                        .member(sender)
-                        .content(chatMessageRequestDto.getMessage())
-                        .build()
+                ChatMessage.builder().chatRoom(chatRoom).member(sender).content(chatMessageRequestDto.getMessage()).build()
         );
 
         List<ReadStatus> readStatuses = createReadStatuses(chatRoom, chatMessage, sender);
         readStatusRepository.saveAll(readStatuses);
+    }
+
+    @Override
+    public List<ChatRoomListResponseDto> getGroupChatRooms() {
+
+        return chatRoomRepository.findByIsGroupChat("Y").stream()
+                .map(c -> new ChatRoomListResponseDto(c.getId(), c.getName()))
+                .toList();
+    }
+
+    @Transactional
+    @Override
+    public void addParticipantToGroupChat(Long roomId) {
+
+        ChatRoom chatRoom = getChatRoomById(roomId);
+        Member member = getAuthenticatedMember();
+
+        chatParticipantRepository.findByChatRoomAndMember(chatRoom, member)
+                .orElseGet(() -> addParticipantToRoom(chatRoom, member));
     }
 
     private ChatRoom getChatRoomById(Long roomId) {
@@ -85,6 +88,12 @@ public class ChatServiceImpl implements ChatService {
                 .orElseThrow(() -> new EntityNotFoundException("Member not found"));
     }
 
+    private Member getAuthenticatedMember() {
+
+        return memberRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
+                .orElseThrow(() -> new EntityNotFoundException("Authenticated member not found"));
+    }
+
     private List<ReadStatus> createReadStatuses(ChatRoom chatRoom, ChatMessage chatMessage, Member sender) {
 
         return chatParticipantRepository.findByChatRoom(chatRoom).stream()
@@ -97,33 +106,10 @@ public class ChatServiceImpl implements ChatService {
                 .toList();
     }
 
-    @Override
-    public List<ChatRoomListResponseDto> getGroupChatRooms() {
+    private ChatParticipant addParticipantToRoom(ChatRoom chatRoom, Member member) {
 
-        return chatRoomRepository.findByIsGroupChat("Y").stream()
-                .map(c -> new ChatRoomListResponseDto(
-                        c.getId(),
-                        c.getName())
-                )
-                .toList();
-    }
-
-    @Override
-    public void addParticipantToGroupChat(Long roomId) {
-        ChatRoom chatRoom = chatRoomRepository.findById(roomId).orElseThrow(() -> new EntityNotFoundException("Room Can not be found"));
-        Member member = memberRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName()).orElseThrow(() -> new EntityNotFoundException("Member can not be found"));
-
-        Optional<ChatParticipant> participant = chatParticipantRepository.findByChatRoomAndMember(chatRoom, member);
-        if (!participant.isPresent()) {
-            addParticipantToRoom(chatRoom, member);
-        }
-    }
-
-    public void addParticipantToRoom(ChatRoom chatRoom, Member member) {
-        ChatParticipant chatParticipant = ChatParticipant.builder()
-                .chatRoom(chatRoom)
-                .member(member)
-                .build();
-        chatParticipantRepository.save(chatParticipant);
+        return chatParticipantRepository.save(
+                ChatParticipant.builder().chatRoom(chatRoom).member(member).build()
+        );
     }
 }
