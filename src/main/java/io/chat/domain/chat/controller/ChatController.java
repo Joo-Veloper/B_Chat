@@ -57,7 +57,7 @@ public class ChatController {
 
     // Look up previous messages
     @GetMapping("/history/{roomId}")
-    public ResponseEntity<?> getChatHistory(@PathVariable Long roomId){
+    public ResponseEntity<List<ChatMessageResponseDto>> getChatHistory(@PathVariable Long roomId){
 
         List<ChatMessageResponseDto> chatMessageResponseDto = chatService.getChatHistory(roomId);
 
