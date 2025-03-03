@@ -1,6 +1,7 @@
 package io.chat.domain.chat.service;
 
 import io.chat.domain.chat.dto.ChatMessageRequestDto;
+import io.chat.domain.chat.dto.ChatMessageResponseDto;
 import io.chat.domain.chat.dto.ChatRoomListResponseDto;
 import io.chat.domain.chat.dto.ChatRoomResponseDto;
 import io.chat.domain.chat.entity.ChatMessage;
@@ -18,6 +19,8 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -111,5 +114,30 @@ public class ChatServiceImpl implements ChatService {
         return chatParticipantRepository.save(
                 ChatParticipant.builder().chatRoom(chatRoom).member(member).build()
         );
+    }
+
+    @Override
+    public List<ChatMessageResponseDto> getChatHistory(Long roomId) {
+
+        ChatRoom chatRoom = getChatRoomById(roomId);
+        Member member = getAuthenticatedMember();
+
+        if (!isRoomParticipant(member.getEmail(), roomId)) {
+            throw new IllegalArgumentException("본인이 속하지 않은 채팅방입니다.");
+        }
+
+        return chatMessageRepository.findByChatRoomOrderByCreateTimeAsc(chatRoom)
+                .stream()
+                .map(c -> new ChatMessageResponseDto(c.getContent(), c.getMember().getEmail()))
+                .toList();
+    }
+
+    @Override
+    public Boolean isRoomParticipant(String email, Long roomId) {
+
+        ChatRoom chatRoom = getChatRoomById(roomId);
+        Member member = getMemberByEmail(email);
+
+        return chatParticipantRepository.findByChatRoomAndMember(chatRoom, member).isPresent();
     }
 }
