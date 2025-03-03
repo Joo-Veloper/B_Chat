@@ -1,6 +1,5 @@
 package io.chat.domain.chat.controller;
 
-import io.chat.domain.chat.dto.ChatMessageResponseDto;
 import io.chat.domain.chat.dto.ChatRoomJoinResponseDto;
 import io.chat.domain.chat.dto.ChatRoomListResponseDto;
 import io.chat.domain.chat.dto.ChatRoomResponseDto;
@@ -53,16 +52,5 @@ public class ChatController {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(responseDto);
-    }
-
-    // Look up previous messages
-    @GetMapping("/history/{roomId}")
-    public ResponseEntity<?> getChatHistory(@PathVariable Long roomId){
-
-        List<ChatMessageResponseDto> chatMessageResponseDtos = chatService.getChatHistory(roomId);
-
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(chatMessageResponseDtos);
     }
 }
