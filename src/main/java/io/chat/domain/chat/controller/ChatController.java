@@ -41,7 +41,7 @@ public class ChatController {
                 .body(chatRooms);
     }
 
-    // 채팅 참여
+    // Join the chat
     @PostMapping("/room/group/{roomId}/join")
     public ResponseEntity<ChatRoomJoinResponseDto> joinGroupChatRoom(@PathVariable Long roomId) {
 
