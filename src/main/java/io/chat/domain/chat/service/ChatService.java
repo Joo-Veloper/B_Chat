@@ -2,6 +2,7 @@ package io.chat.domain.chat.service;
 
 
 import io.chat.domain.chat.dto.ChatMessageRequestDto;
+import io.chat.domain.chat.dto.ChatMessageResponseDto;
 import io.chat.domain.chat.dto.ChatRoomListResponseDto;
 import io.chat.domain.chat.dto.ChatRoomResponseDto;
 
@@ -16,4 +17,8 @@ public interface ChatService {
     List<ChatRoomListResponseDto> getGroupChatRooms();
 
     void addParticipantToGroupChat(Long roomId);
+
+    List<ChatMessageResponseDto> getChatHistory(Long roomId);
+
+    Boolean isRoomParticipant(String email, Long roomId);
 }
