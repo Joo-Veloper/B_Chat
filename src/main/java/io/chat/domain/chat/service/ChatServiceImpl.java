@@ -1,6 +1,7 @@
 package io.chat.domain.chat.service;
 
 import io.chat.domain.chat.dto.ChatMessageRequestDto;
+import io.chat.domain.chat.dto.ChatMessageResponseDto;
 import io.chat.domain.chat.dto.ChatRoomListResponseDto;
 import io.chat.domain.chat.dto.ChatRoomResponseDto;
 import io.chat.domain.chat.entity.ChatMessage;
@@ -18,6 +19,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+
 import java.util.List;
 
 @Service
@@ -112,4 +114,24 @@ public class ChatServiceImpl implements ChatService {
                 ChatParticipant.builder().chatRoom(chatRoom).member(member).build()
         );
     }
+
+    @Override
+    public List<ChatMessageResponseDto> getChatHistory(Long roomId) {
+        ChatRoom chatRoom = getChatRoomById(roomId);
+        Member member = getAuthenticatedMember();
+
+        boolean isParticipant = chatRoom.getChatParticipants().stream()
+                .anyMatch(p -> p.getMember().equals(member));
+
+        if (!isParticipant) {
+            throw new IllegalArgumentException("본인이 속하지 않은 채팅방 입니다.");
+        }
+
+        List<ChatMessage> chatMessages = chatMessageRepository.findByChatRoomIdOrderByCreateTimeAsc(roomId);
+
+        return chatMessages.stream()
+                .map(c -> new ChatMessageResponseDto(c.getContent(), c.getMember().getEmail()))
+                .toList();
+    }
+
 }
