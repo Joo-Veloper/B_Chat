@@ -12,6 +12,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -110,6 +111,7 @@ public class ChatServiceImpl implements ChatService {
     @Transactional
     @Override
     public void messageRead(Long roomId) {
+
         validateRoomParticipant(roomId);
 
         ChatRoom chatRoom = getChatRoomById(roomId);
@@ -119,6 +121,44 @@ public class ChatServiceImpl implements ChatService {
                 .stream()
                 .filter(readStatus -> !readStatus.isRead())
                 .forEach(readStatus -> readStatus.markAsRead(true));
+    }
+
+    /**
+     * Look up my chatroom list
+     */
+    @Override
+    public List<MyChatListResponseDto> getMyChatRoom() {
+        Member member = getAuthenticatedMember();
+        return chatParticipantRepository.findAllByMember(member)
+                .stream()
+                .map(c -> new MyChatListResponseDto(
+                        c.getChatRoom().getId(),
+                        c.getChatRoom().getName(),
+                        c.getChatRoom().getIsGroupChat(),
+                        readStatusRepository.countByChatRoomAndMemberAndIsReadFalse(c.getChatRoom(), member)))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     *  leave the chat room
+     */
+    @Transactional
+    @Override
+    public void leaveChatRoom(Long roomId) {
+        ChatRoom chatRoom = getChatRoomById(roomId);
+        Member member = getAuthenticatedMember();
+
+        if (!"Y".equals(chatRoom.getIsGroupChat())) {
+            throw new IllegalArgumentException("단체 채팅방이 아닙니다.");
+        }
+
+        ChatParticipant participant = chatParticipantRepository.findByChatRoomAndMember(chatRoom, member)
+                .orElseThrow(() -> new EntityNotFoundException("참여자를 찾을 수 없습니다."));
+        chatParticipantRepository.delete(participant);
+
+        if (chatParticipantRepository.findByChatRoom(chatRoom).isEmpty()) {
+            chatRoomRepository.delete(chatRoom);
+        }
     }
 
     // ===================== Private Methods ===================== //

@@ -73,4 +73,25 @@ public class ChatController {
                 .status(HttpStatus.OK)
                 .body(new ChatReadResponseDto("Messages marked as read successfully"));
     }
+
+
+    // Look up my chatroom list
+    @GetMapping("/my/rooms")
+    public ResponseEntity<List<MyChatListResponseDto>> getMyChatRooms() {
+
+        List<MyChatListResponseDto> myChatListResponseDtos = chatService.getMyChatRoom();
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(myChatListResponseDtos);
+    }
+
+    // leave the chat room
+    @DeleteMapping("/room/group/{roomId}/leave")
+    public ResponseEntity<Void> leaveGroupChatRoom(@PathVariable Long roomId) {
+
+        chatService.leaveChatRoom(roomId);
+
+        return ResponseEntity.ok().build();
+    }
 }
