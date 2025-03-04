@@ -1,17 +1,8 @@
 package io.chat.domain.chat.service;
 
-import io.chat.domain.chat.dto.ChatMessageRequestDto;
-import io.chat.domain.chat.dto.ChatMessageResponseDto;
-import io.chat.domain.chat.dto.ChatRoomListResponseDto;
-import io.chat.domain.chat.dto.ChatRoomResponseDto;
-import io.chat.domain.chat.entity.ChatMessage;
-import io.chat.domain.chat.entity.ChatParticipant;
-import io.chat.domain.chat.entity.ChatRoom;
-import io.chat.domain.chat.entity.ReadStatus;
-import io.chat.domain.chat.repository.ChatMessageRepository;
-import io.chat.domain.chat.repository.ChatParticipantRepository;
-import io.chat.domain.chat.repository.ChatRoomRepository;
-import io.chat.domain.chat.repository.ReadStatusRepository;
+import io.chat.domain.chat.dto.*;
+import io.chat.domain.chat.entity.*;
+import io.chat.domain.chat.repository.*;
 import io.chat.domain.member.entity.Member;
 import io.chat.domain.member.repository.MemberRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -20,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -33,41 +23,49 @@ public class ChatServiceImpl implements ChatService {
     private final MemberRepository memberRepository;
     private final ReadStatusRepository readStatusRepository;
 
+    /**
+     * Creating a Group Chat Room
+     */
     @Transactional
     @Override
     public ChatRoomResponseDto createGroupRoom(String roomName) {
 
         Member member = getAuthenticatedMember();
-        ChatRoom chatRoom = chatRoomRepository.save(
-                ChatRoom.builder().name(roomName).isGroupChat("Y").build()
-        );
+        ChatRoom chatRoom = createChatRoom(roomName);
         addParticipantToRoom(chatRoom, member);
 
         return new ChatRoomResponseDto(chatRoom.getId(), chatRoom.getName());
     }
 
+    /**
+     * Save chat messages
+     */
     @Transactional
     @Override
     public void saveMessage(Long roomId, ChatMessageRequestDto chatMessageRequestDto) {
 
         ChatRoom chatRoom = getChatRoomById(roomId);
         Member sender = getMemberByEmail(chatMessageRequestDto.getSenderEmail());
-        ChatMessage chatMessage = chatMessageRepository.save(
-                ChatMessage.builder().chatRoom(chatRoom).member(sender).content(chatMessageRequestDto.getMessage()).build()
-        );
 
-        List<ReadStatus> readStatuses = createReadStatuses(chatRoom, chatMessage, sender);
-        readStatusRepository.saveAll(readStatuses);
+        ChatMessage chatMessage = saveChatMessage(chatRoom, sender, chatMessageRequestDto.getMessage());
+        saveReadStatuses(chatRoom, chatMessage, sender);
     }
 
+    /**
+     * Group Chat Room List View
+     */
     @Override
     public List<ChatRoomListResponseDto> getGroupChatRooms() {
 
-        return chatRoomRepository.findByIsGroupChat("Y").stream()
+        return chatRoomRepository.findByIsGroupChat("Y")
+                .stream()
                 .map(c -> new ChatRoomListResponseDto(c.getId(), c.getName()))
                 .toList();
     }
 
+    /**
+     * Join the group chat room
+     */
     @Transactional
     @Override
     public void addParticipantToGroupChat(Long roomId) {
@@ -79,52 +77,14 @@ public class ChatServiceImpl implements ChatService {
                 .orElseGet(() -> addParticipantToRoom(chatRoom, member));
     }
 
-    private ChatRoom getChatRoomById(Long roomId) {
-
-        return chatRoomRepository.findById(roomId)
-                .orElseThrow(() -> new EntityNotFoundException("Chat room not found"));
-    }
-
-    private Member getMemberByEmail(String email) {
-
-        return memberRepository.findByEmail(email)
-                .orElseThrow(() -> new EntityNotFoundException("Member not found"));
-    }
-
-    private Member getAuthenticatedMember() {
-
-        return memberRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
-                .orElseThrow(() -> new EntityNotFoundException("Authenticated member not found"));
-    }
-
-    private List<ReadStatus> createReadStatuses(ChatRoom chatRoom, ChatMessage chatMessage, Member sender) {
-
-        return chatParticipantRepository.findByChatRoom(chatRoom).stream()
-                .map(chatParticipant -> ReadStatus.builder()
-                        .chatRoom(chatRoom)
-                        .member(chatParticipant.getMember())
-                        .chatMessage(chatMessage)
-                        .isRead(chatParticipant.getMember().equals(sender))
-                        .build())
-                .toList();
-    }
-
-    private ChatParticipant addParticipantToRoom(ChatRoom chatRoom, Member member) {
-
-        return chatParticipantRepository.save(
-                ChatParticipant.builder().chatRoom(chatRoom).member(member).build()
-        );
-    }
-
+    /**
+     * Check Chat Room Message History
+     */
     @Override
     public List<ChatMessageResponseDto> getChatHistory(Long roomId) {
 
+        validateRoomParticipant(roomId);
         ChatRoom chatRoom = getChatRoomById(roomId);
-        Member member = getAuthenticatedMember();
-
-        if (!isRoomParticipant(member.getEmail(), roomId)) {
-            throw new IllegalArgumentException("본인이 속하지 않은 채팅방입니다.");
-        }
 
         return chatMessageRepository.findByChatRoomOrderByCreateTimeAsc(chatRoom)
                 .stream()
@@ -132,6 +92,9 @@ public class ChatServiceImpl implements ChatService {
                 .toList();
     }
 
+    /**
+     * Verify that the user is a chat room participant
+     */
     @Override
     public Boolean isRoomParticipant(String email, Long roomId) {
 
@@ -139,5 +102,91 @@ public class ChatServiceImpl implements ChatService {
         Member member = getMemberByEmail(email);
 
         return chatParticipantRepository.findByChatRoomAndMember(chatRoom, member).isPresent();
+    }
+
+    /**
+     * Processing Chat Message Read
+     */
+    @Transactional
+    @Override
+    public void messageRead(Long roomId) {
+        validateRoomParticipant(roomId);
+
+        ChatRoom chatRoom = getChatRoomById(roomId);
+        Member member = getAuthenticatedMember();
+
+        readStatusRepository.findByChatRoomAndMember(chatRoom, member)
+                .stream()
+                .filter(readStatus -> !readStatus.isRead())
+                .forEach(readStatus -> readStatus.markAsRead(true));
+    }
+
+    // ===================== Private Methods ===================== //
+
+    private ChatRoom createChatRoom(String roomName) {
+
+        return chatRoomRepository.save(ChatRoom.builder()
+                .name(roomName)
+                .isGroupChat("Y")
+                .build());
+    }
+
+    private ChatMessage saveChatMessage(ChatRoom chatRoom, Member sender, String message) {
+
+        return chatMessageRepository.save(ChatMessage.builder()
+                .chatRoom(chatRoom)
+                .member(sender)
+                .content(message)
+                .build());
+    }
+
+    private void saveReadStatuses(ChatRoom chatRoom, ChatMessage chatMessage, Member sender) {
+
+        List<ReadStatus> readStatuses = chatParticipantRepository.findByChatRoom(chatRoom)
+                .stream()
+                .map(chatParticipant -> ReadStatus.builder()
+                        .chatRoom(chatRoom)
+                        .member(chatParticipant.getMember())
+                        .chatMessage(chatMessage)
+                        .isRead(chatParticipant.getMember().equals(sender))
+                        .build())
+                .toList();
+
+        readStatusRepository.saveAll(readStatuses);
+    }
+
+    private ChatParticipant addParticipantToRoom(ChatRoom chatRoom, Member member) {
+
+        return chatParticipantRepository.save(ChatParticipant.builder()
+                .chatRoom(chatRoom)
+                .member(member)
+                .build());
+    }
+
+    private void validateRoomParticipant(Long roomId) {
+
+        Member member = getAuthenticatedMember();
+
+        if (!isRoomParticipant(member.getEmail(), roomId)) {
+            throw new IllegalArgumentException("본인이 속하지 않은 채팅방입니다.");
+        }
+    }
+
+    private ChatRoom getChatRoomById(Long roomId) {
+
+        return chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new EntityNotFoundException("채팅방을 찾을 수 없습니다."));
+    }
+
+    private Member getMemberByEmail(String email) {
+
+        return memberRepository.findByEmail(email)
+                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다."));
+    }
+
+    private Member getAuthenticatedMember() {
+
+        return memberRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
+                .orElseThrow(() -> new EntityNotFoundException("로그인된 사용자를 찾을 수 없습니다."));
     }
 }

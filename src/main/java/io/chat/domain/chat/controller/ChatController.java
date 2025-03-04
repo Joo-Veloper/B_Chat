@@ -1,9 +1,6 @@
 package io.chat.domain.chat.controller;
 
-import io.chat.domain.chat.dto.ChatMessageResponseDto;
-import io.chat.domain.chat.dto.ChatRoomJoinResponseDto;
-import io.chat.domain.chat.dto.ChatRoomListResponseDto;
-import io.chat.domain.chat.dto.ChatRoomResponseDto;
+import io.chat.domain.chat.dto.*;
 import io.chat.domain.chat.service.ChatService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -57,12 +54,23 @@ public class ChatController {
 
     // Look up previous messages
     @GetMapping("/history/{roomId}")
-    public ResponseEntity<List<ChatMessageResponseDto>> getChatHistory(@PathVariable Long roomId){
+    public ResponseEntity<List<ChatMessageResponseDto>> getChatHistory(@PathVariable Long roomId) {
 
         List<ChatMessageResponseDto> chatMessageResponseDto = chatService.getChatHistory(roomId);
 
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(chatMessageResponseDto);
+    }
+
+    // Processing Chat Message Read
+    @PatchMapping("/room/{roomId}/read")
+    public ResponseEntity<ChatReadResponseDto> messageRead(@PathVariable Long roomId) {
+
+        chatService.messageRead(roomId);
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(new ChatReadResponseDto("Messages marked as read successfully"));
     }
 }

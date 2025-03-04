@@ -32,6 +32,9 @@ public class ReadStatus extends TimeStamp {
     private ChatMessage chatMessage;
 
     @Column(nullable = false)
-    private Boolean isRead;
+    private boolean isRead;
 
+    public void markAsRead(boolean isRead) {
+        this.isRead = isRead;
+    }
 }

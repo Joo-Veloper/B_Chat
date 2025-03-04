@@ -21,4 +21,6 @@ public interface ChatService {
     List<ChatMessageResponseDto> getChatHistory(Long roomId);
 
     Boolean isRoomParticipant(String email, Long roomId);
+
+    void messageRead(Long roomId);
 }
