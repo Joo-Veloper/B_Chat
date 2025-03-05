@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ChatMessageRequestDto {
 
+    private Long roomId;
     private String message;
     private String senderEmail;
 }
