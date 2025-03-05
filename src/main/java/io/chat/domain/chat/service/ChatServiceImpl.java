@@ -5,6 +5,7 @@ import io.chat.domain.chat.entity.*;
 import io.chat.domain.chat.repository.*;
 import io.chat.domain.member.entity.Member;
 import io.chat.domain.member.repository.MemberRepository;
+import io.chat.global.sse.service.NotificationService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -23,6 +25,7 @@ public class ChatServiceImpl implements ChatService {
     private final ChatMessageRepository chatMessageRepository;
     private final MemberRepository memberRepository;
     private final ReadStatusRepository readStatusRepository;
+    private final NotificationService notificationService;
 
     /**
      * Creating a Group Chat Room
@@ -50,7 +53,9 @@ public class ChatServiceImpl implements ChatService {
 
         ChatMessage chatMessage = saveChatMessage(chatRoom, sender, chatMessageRequestDto.getMessage());
         saveReadStatuses(chatRoom, chatMessage, sender);
+
     }
+
 
     /**
      * Group Chat Room List View
@@ -128,7 +133,9 @@ public class ChatServiceImpl implements ChatService {
      */
     @Override
     public List<MyChatListResponseDto> getMyChatRoom() {
+
         Member member = getAuthenticatedMember();
+
         return chatParticipantRepository.findAllByMember(member)
                 .stream()
                 .map(c -> new MyChatListResponseDto(
@@ -140,11 +147,12 @@ public class ChatServiceImpl implements ChatService {
     }
 
     /**
-     *  leave the chat room
+     * Leave the chat room
      */
     @Transactional
     @Override
     public void leaveChatRoom(Long roomId) {
+
         ChatRoom chatRoom = getChatRoomById(roomId);
         Member member = getAuthenticatedMember();
 
@@ -161,6 +169,21 @@ public class ChatServiceImpl implements ChatService {
         }
     }
 
+    /**
+     * 1:1 chat
+     */
+    @Transactional
+    @Override
+    public Long getOrCreatePrivateRoom(Long otherMemberId) {
+
+        Member member = getAuthenticatedMember();
+        Member otherMember = getMemberById(otherMemberId);
+
+        return chatParticipantRepository.findExistingPrivateRoom(member.getId(), otherMember.getId())
+                .map(ChatRoom::getId)
+                .orElseGet(() -> createPrivateChatRoom(member, otherMember));
+    }
+
     // ===================== Private Methods ===================== //
 
     private ChatRoom createChatRoom(String roomName) {
@@ -169,6 +192,19 @@ public class ChatServiceImpl implements ChatService {
                 .name(roomName)
                 .isGroupChat("Y")
                 .build());
+    }
+
+    private Long createPrivateChatRoom(Member member, Member otherMember) {
+
+        ChatRoom newRoom = chatRoomRepository.save(ChatRoom.builder()
+                .isGroupChat("N")
+                .name(String.format("%s-%s", member.getName(), otherMember.getName()))
+                .build());
+
+        addParticipantToRoom(newRoom, member);
+        addParticipantToRoom(newRoom, otherMember);
+
+        return newRoom.getId();
     }
 
     private ChatMessage saveChatMessage(ChatRoom chatRoom, Member sender, String message) {
@@ -221,6 +257,11 @@ public class ChatServiceImpl implements ChatService {
     private Member getMemberByEmail(String email) {
 
         return memberRepository.findByEmail(email)
+                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다."));
+    }
+
+    private Member getMemberById(Long memberId) {
+        return memberRepository.findById(memberId)
                 .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다."));
     }
 

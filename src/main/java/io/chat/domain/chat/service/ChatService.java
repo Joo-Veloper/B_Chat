@@ -24,4 +24,6 @@ public interface ChatService {
     List<MyChatListResponseDto> getMyChatRoom();
 
     void leaveChatRoom(Long roomId);
+
+    Long getOrCreatePrivateRoom(Long otherMemberId);
 }
