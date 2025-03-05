@@ -39,6 +39,7 @@ public class SecurityConfigs {
                 .authorizeHttpRequests(a -> a
                         .requestMatchers("/member/signup", "/member/login", "/connect/**")
                         .permitAll()
+                        .requestMatchers("/notifications/subscribe/**").authenticated()
                         .anyRequest()
                         .authenticated())
 

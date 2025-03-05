@@ -5,7 +5,7 @@ import io.chat.domain.chat.entity.*;
 import io.chat.domain.chat.repository.*;
 import io.chat.domain.member.entity.Member;
 import io.chat.domain.member.repository.MemberRepository;
-import io.chat.global.sse.service.NotificationService;
+import io.chat.domain.chat.sse.service.NotificationService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +13,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -53,9 +52,9 @@ public class ChatServiceImpl implements ChatService {
 
         ChatMessage chatMessage = saveChatMessage(chatRoom, sender, chatMessageRequestDto.getMessage());
         saveReadStatuses(chatRoom, chatMessage, sender);
+        notifyParticipants(chatRoom, sender);
 
     }
-
 
     /**
      * Group Chat Room List View
@@ -269,5 +268,14 @@ public class ChatServiceImpl implements ChatService {
 
         return memberRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
                 .orElseThrow(() -> new EntityNotFoundException("로그인된 사용자를 찾을 수 없습니다."));
+    }
+
+    private void notifyParticipants(ChatRoom chatRoom, Member sender) {
+        chatParticipantRepository.findByChatRoom(chatRoom)
+                .forEach(participant -> {
+                    if (!participant.getMember().equals(sender)) {
+                        notificationService.sendNotification(participant.getMember().getId(), "새로운 메시지가 도착했습니다!");
+                    }
+                });
     }
 }
