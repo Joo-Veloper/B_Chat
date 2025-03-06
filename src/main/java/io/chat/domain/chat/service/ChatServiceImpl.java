@@ -178,6 +178,10 @@ public class ChatServiceImpl implements ChatService {
         Member member = getAuthenticatedMember();
         Member otherMember = getMemberById(otherMemberId);
 
+        if (member.getId().equals(otherMemberId)) {
+            throw new IllegalArgumentException("본인과는 채팅할 수 없습니다.");
+        }
+
         return chatParticipantRepository.findExistingPrivateRoom(member.getId(), otherMember.getId())
                 .map(ChatRoom::getId)
                 .orElseGet(() -> createPrivateChatRoom(member, otherMember));
