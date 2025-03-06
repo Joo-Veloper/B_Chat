@@ -104,7 +104,7 @@ TALK HAVEN은 대화(Talk)와 안식처(Haven)의 결합어로, 안전하고 편
 
   - 보안: Spring Security, JWT
 
-  - 웹 소켓: Spring WebSocket
+  - 웹 소켓: Spring WebSocket, Stomp
 
   - 검증 및 모니터링: Spring Validation, Actuator, Prometheus
 
